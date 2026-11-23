@@ -84,6 +84,21 @@ Model comparison (5-fold cross-validation on the 3,000 training rows):
 - **Snapshot data:** behaviour and prices drift. Retrain every quarter and re-check the top-100 hit rate.
 - **Made-up data:** results show the method, not real CityNet customers. In a real company, customer data would never be committed to Git.
 
+## Reproduce check (Lab 9)
+A fresh `git clone` followed by the "How to run" commands gives the same results:
+`python src/predict.py data/new_customers.csv` puts C90001 first (risk 0.797), and
+`python src/lab5_evaluate.py` prints `top-100 churners: 49`. The regenerated
+`reports/predictions.csv` is identical to the committed one. A different number means
+a different split or library version: find out why before the demo.
+
+## 5-minute demo
+1. The user story and the six acceptance criteria
+2. The data and the leaky column (`python src/lab1_inspect.py`, `python src/lab4_leak_check.py`)
+3. The model table (`python src/lab4_models.py`, `python src/lab4b_svm.py`)
+4. The top-100 result: 49 vs 18 on validation, 51 vs 18 on test
+5. Who it misses: quiet long-time customers, and East region
+6. Live: `python src/predict.py data/new_customers.csv`
+
 ## Acceptance criteria
 
 - [x] 1. The top-100 list holds at least twice as many real churners as a random 100 (49 vs 18 on validation, 51 vs 18 on test)
