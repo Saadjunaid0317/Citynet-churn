@@ -27,17 +27,34 @@ def test(name, prep, model):
 
 # Part 1: compare
 # TODO before running: guess which line takes the longest, and why
-test("SVM linear", make_preprocess(), SVC(kernel="____", class_weight="balanced"))
+#   The "no scaling" line. Without StandardScaler, monthly_bill (thousands) dwarfs the
+#   0/1 one-hot columns, so the optimiser needs many more steps to find the widest street.
+test("SVM linear", make_preprocess(), SVC(kernel="linear", class_weight="balanced"))
 test("SVM linear, no scaling", no_scaling(), SVC(kernel="linear", class_weight="balanced"))
 
 # Part 2: use it like Lab 5
 pipe = Pipeline([("prep", make_preprocess()), ("model", SVC(kernel="linear", class_weight="balanced"))])
-pipe.____(X_train, y_train)
+pipe.fit(X_train, y_train)
 score = pipe.decision_function(X_val)
-top = np.argsort(-score)[:____]
+top = np.argsort(-score)[:100]
 print("top-100 churners:", y_val.to_numpy()[top].sum(), "| random 100 would find about", round(100 * y_val.mean()))
 
 # Part 3: which columns push a customer towards leaving?
 w = pd.Series(pipe[-1].coef_[0], index=pipe[0].get_feature_names_out())
 print("push to LEAVE:", w.nlargest(3).round(2).to_dict())
 print("push to STAY: ", w.nsmallest(3).round(2).to_dict())
+
+# Output (scikit-learn 1.7.2):
+#   SVM linear               PR-AUC: 0.406   time: 1s
+#   SVM linear, no scaling   PR-AUC: 0.394   time: 64s
+#   top-100 churners: 51 | random 100 would find about 18
+#   push to LEAVE: {'cat__paid_late_last_bill_yes': 0.35, 'cat__auto_pay_no': 0.26, 'num__support_calls_90d': 0.25}
+#   push to STAY:  {'num__tenure_months': -0.77, 'cat__paid_late_last_bill_no': -0.35, 'cat__auto_pay_yes': -0.26}
+#
+# Ticket SVM-101 answers:
+# 1. PR-AUC: linear SVM 0.406 vs logistic 0.407 -> a tie. Without scaling it is worse
+#    (0.394) and about 60x slower, so always scale inside the pipeline.
+# 2. The SVM's top 100 holds 51 real churners vs about 18 for a random 100 (2.8x).
+# 3. Reasons to LEAVE: paid the last bill late, no auto-pay, many support calls.
+#    Reasons to STAY: long tenure (strongest), paid on time, auto-pay on.
+# Same score as logistic -> ship logistic (probabilities, simpler to explain).
